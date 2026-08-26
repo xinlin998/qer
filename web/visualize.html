@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QER 可视化分析 - 卫星陨落预报</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        /* ===== 全局样式 - 深色主题 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ===== 顶部标题栏 ===== */
+        header {
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            padding: 20px 40px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            border-bottom: 2px solid #ff9800;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        header h1 {
+            color: #ff9800;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        header .subtitle {
+            color: #a0a0c0;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .nav-link {
+            display: inline-block;
+            padding: 8px 18px;
+            background-color: #ff9800;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover {
+            background-color: #ffb74d;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+        }
+
+        /* ===== 主容器 ===== */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        /* ===== 工具栏 ===== */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .toolbar .status {
+            color: #a0a0c0;
+            font-size: 13px;
+        }
+
+        .toolbar .status .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #4caf50;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .toolbar .status .dot.loading {
+            background-color: #ff9800;
+            animation: pulse 1.2s infinite;
+        }
+
+        .toolbar .status .dot.error {
+            background-color: #f44336;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .btn {
+            padding: 8px 18px;
+            background-color: #0f3460;
+            color: #e0e0e0;
+            border: 1px solid #1a5276;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background-color: #1a5276;
+            border-color: #ff9800;
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ===== 卡片 ===== */
+        .card {
+            background-color: #16213e;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            border: 1px solid #1a3a5c;
+        }
+
+        .card-title {
+            color: #ff9800;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #1a3a5c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            background-color: #0f3460;
+            color: #a0d8ef;
+            font-size: 12px;
+            border-radius: 12px;
+            font-weight: normal;
+        }
+
+        .card-desc {
+            color: #a0a0c0;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        /* ===== 表格样式 ===== */
+        .table-wrapper {
+            overflow-x: auto;
+            background-color: #0f3460;
+            border-radius: 6px;
+            border: 1px solid #1a3a5c;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead {
+            background-color: #1a3a5c;
+        }
+
+        th {
+            padding: 12px 14px;
+            text-align: left;
+            color: #a0d8ef;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            border-bottom: 2px solid #ff9800;
+            position: relative;
+        }
+
+        th:hover {
+            background-color: #234b73;
+        }
+
+        th::after {
+            content: "⇅";
+            margin-left: 6px;
+            opacity: 0.4;
+            font-size: 11px;
+        }
+
+        th.sort-asc::after {
+            content: "↑";
+            opacity: 1;
+            color: #ff9800;
+        }
+
+        th.sort-desc::after {
+            content: "↓";
+            opacity: 1;
+            color: #ff9800;
+        }
+
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #1a3a5c;
+            color: #e0e0e0;
+        }
+
+        td.numeric {
+            text-align: right;
+            font-family: "Consolas", "Courier New", monospace;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: rgba(15, 52, 96, 0.5);
+        }
+
+        tbody tr:nth-child(odd) {
+            background-color: rgba(22, 33, 62, 0.5);
+        }
+
+        tbody tr:hover {
+            background-color: rgba(255, 152, 0, 0.15);
+        }
+
+        .table-meta {
+            color: #a0a0c0;
+            font-size: 12px;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        /* ===== 摘要框 ===== */
+        .summary-box {
+            background-color: #0f3460;
+            border-left: 4px solid #ff9800;
+            padding: 14px 18px;
+            margin-top: 16px;
+            border-radius: 4px;
+        }
+
+        .summary-box h4 {
+            color: #a0d8ef;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .summary-item {
+            background-color: rgba(22, 33, 62, 0.6);
+            padding: 10px 14px;
+            border-radius: 4px;
+        }
+
+        .summary-item .label {
+            color: #a0a0c0;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .summary-item .value {
+            color: #ff9800;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: "Consolas", "Courier New", monospace;
+        }
+
+        .conclusion-box {
+            background-color: rgba(255, 152, 0, 0.1);
+            border: 1px solid #ff9800;
+            padding: 14px 18px;
+            margin-top: 12px;
+            border-radius: 4px;
+            color: #ffd0a0;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .bstats-lines {
+            background-color: rgba(0, 0, 0, 0.25);
+            padding: 10px 14px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 12px;
+            color: #b0c4de;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* ===== 图表容器 ===== */
+        #altitudeChart {
+            width: 100%;
+            height: 500px;
+            background-color: #0f3460;
+            border-radius: 6px;
+            border: 1px solid #1a3a5c;
+        }
+
+        /* ===== 图表控制工具栏 ===== */
+        .chart-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+            background-color: rgba(15, 52, 96, 0.6);
+            border: 1px solid #1a3a5c;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .control-label {
+            color: #a0d8ef;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .ctrl-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #e0e0e0;
+            font-size: 12px;
+            cursor: pointer;
+            user-select: none;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background-color: rgba(22, 33, 62, 0.6);
+            border: 1px solid #1a3a5c;
+            transition: all 0.15s ease;
+        }
+
+        .ctrl-toggle:hover {
+            background-color: rgba(255, 152, 0, 0.15);
+            border-color: #ff9800;
+        }
+
+        .ctrl-toggle input[type="checkbox"],
+        .ctrl-toggle input[type="radio"] {
+            margin: 0;
+            cursor: pointer;
+            accent-color: #ff9800;
+        }
+
+        .btn-sm {
+            padding: 4px 12px;
+            font-size: 12px;
+            margin-left: auto;
+        }
+
+        /* ===== 错误提示 ===== */
+        .error-msg {
+            background-color: rgba(244, 67, 54, 0.15);
+            border: 1px solid #f44336;
+            color: #ffabab;
+            padding: 10px 14px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+
+        .empty-msg {
+            color: #707090;
+            font-style: italic;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* ===== 底部 ===== */
+        footer {
+            background-color: #16213e;
+            padding: 20px 40px;
+            text-align: center;
+            color: #707090;
+            font-size: 12px;
+            border-top: 1px solid #1a3a5c;
+            margin-top: 30px;
+        }
+
+        footer a {
+            color: #a0d8ef;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 768px) {
+            header {
+                padding: 16px 20px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            header h1 {
+                font-size: 20px;
+            }
+            .container {
+                padding: 16px 12px;
+            }
+            .card {
+                padding: 16px;
+            }
+            #altitudeChart {
+                height: 380px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部标题栏 -->
+    <header>
+        <div>
+            <h1>QER 可视化分析</h1>
+            <div class="subtitle">卫星陨落预报软件 / 轨道衰减与再入时间可视化</div>
+        </div>
+        <a href="/" class="nav-link">← 返回操作面板</a>
+    </header>
+
+    <div class="container">
+
+        <!-- 工具栏 -->
+        <div class="toolbar">
+            <div class="status">
+                <span class="dot" id="statusDot"></span>
+                <span id="statusText">就绪</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn" id="exportCsvBtn" onclick="exportUnifiedCsv()" title="导出统一对比表为 CSV">导出 CSV</button>
+                <button class="btn" id="refreshBtn" onclick="loadAllData()">刷新数据</button>
+            </div>
+        </div>
+
+        <!-- 汇总统计卡片 -->
+        <div class="card" id="summaryCard" style="padding:16px 24px;">
+            <div class="card-title" style="margin-bottom:12px;">
+                关键指标汇总
+                <span class="badge">统计</span>
+            </div>
+            <div class="summary-grid" id="summaryGrid">
+                <div class="summary-item">
+                    <div class="label">TLE 历元数</div>
+                    <div class="value" id="statTotalEpochs">—</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">匹配对数 (A↔B)</div>
+                    <div class="value" id="statMatchedPairs">—</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">平均差异 (A-B)</div>
+                    <div class="value" id="statMeanDiff">—</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">最大差异</div>
+                    <div class="value" id="statMaxDiff">—</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">最小差异</div>
+                    <div class="value" id="statMinDiff">—</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">方法A 平均寿命</div>
+                    <div class="value" id="statMeanLifeA">—</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">方法B 平均寿命</div>
+                    <div class="value" id="statMeanLifeB">—</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">星历采样点</div>
+                    <div class="value" id="statTotalPoints">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 可视化A区：表格化展示 -->
+        <div class="card">
+            <div class="card-title">
+                可视化 A 区 — 预报结果汇总
+                <span class="badge">表格</span>
+            </div>
+            <div class="card-desc">
+                展示不同方法、不同根数对应的根数时间、再入陨落时间和轨道寿命。
+            </div>
+
+            <!-- ① 统一对比表（核心：两种方法按历元配对） -->
+            <h4 style="color:#a0d8ef; margin: 18px 0 8px 0; font-size:15px;">
+                ① 统一对比表 — 两种方法 × 不同 TLE 根数
+            </h4>
+            <div class="card-desc" style="margin-bottom:10px;">
+                将 Function3（单 TLE SGP4 外推，无大气模型）与 ReentryProgram（多 BC + NRLMSISE-00 完整力学）
+                按同一 TLE 历元配对，对比陨落时刻与轨道寿命。
+            </div>
+            <div class="table-wrapper">
+                <table id="unifiedTable">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" data-key="objId">objID</th>
+                            <th rowspan="2" data-key="mjdEpoch" data-numeric="1">历元 MJD</th>
+                            <th rowspan="2" data-key="epochDate">历元时刻(UTC)</th>
+                            <th colspan="3" style="text-align:center; background:#1a2747; color:#ffd700;">方法A: Function3 (单TLE SGP4)</th>
+                            <th colspan="4" style="text-align:center; background:#1a2747; color:#50fa7b;">方法B: ReentryProgram (多BC+NRLMSISE-00)</th>
+                            <th rowspan="2" data-key="diffDays" data-numeric="1">差异 A-B (天)</th>
+                        </tr>
+                        <tr>
+                            <th data-key="methodA_mjdReentry" data-numeric="1">陨落 MJD</th>
+                            <th data-key="methodA_reentryDate">陨落时刻(UTC)</th>
+                            <th data-key="methodA_lifeDays" data-numeric="1">寿命(天)</th>
+                            <th data-key="methodB_mjdReentryMean" data-numeric="1">陨落 MJD(均值)</th>
+                            <th data-key="methodB_lifeDaysMean" data-numeric="1">寿命(天,均值)</th>
+                            <th data-key="methodB_mjdReentryStd" data-numeric="1">MJD 标准差</th>
+                            <th data-key="methodB_bcRange">BC 范围</th>
+                        </tr>
+                    </thead>
+                    <tbody id="unifiedBody">
+                        <tr><td colspan="10" class="empty-msg">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-meta" id="unifiedMeta"></div>
+
+            <!-- ② Function3 单TLE预报结果表 -->
+            <h4 style="color:#a0d8ef; margin: 24px 0 8px 0; font-size:15px;">
+                ② Function3 单 TLE 预报结果（详细）
+            </h4>
+            <div class="table-wrapper">
+                <table id="fun3Table">
+                    <thead>
+                        <tr>
+                            <th data-key="objId">objID</th>
+                            <th data-key="mjdEpoch" data-numeric="1">mjdEpoch</th>
+                            <th data-key="mjdReentry" data-numeric="1">mjdReentry</th>
+                            <th data-key="reentryDate">reentryDate (UTC)</th>
+                            <th data-key="lifeDays" data-numeric="1">lifeDays</th>
+                            <th data-key="lat" data-numeric="1">lat (°)</th>
+                            <th data-key="lon" data-numeric="1">lon (°)</th>
+                            <th data-key="alt" data-numeric="1">alt (km)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fun3Body">
+                        <tr><td colspan="8" class="empty-msg">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-meta" id="fun3Meta"></div>
+
+            <!-- ③ ReentryProgram 结果表（含历元信息） -->
+            <h4 style="color:#a0d8ef; margin: 24px 0 8px 0; font-size:15px;">
+                ③ ReentryProgram（多 TLE 完整力学）结果（详细）
+            </h4>
+            <div class="table-wrapper">
+                <table id="reentryBTable">
+                    <thead>
+                        <tr>
+                            <th data-key="epochIndex" data-numeric="1">历元#</th>
+                            <th data-key="epochDate">历元时刻(UTC)</th>
+                            <th data-key="mjdEpoch" data-numeric="1">历元MJD</th>
+                            <th data-key="bc" data-numeric="1">BC</th>
+                            <th data-key="mjdReentry" data-numeric="1">陨落MJD</th>
+                            <th data-key="dateStr">陨落时刻(UTC)</th>
+                            <th data-key="lifeDays" data-numeric="1">寿命(天)</th>
+                            <th data-key="lat" data-numeric="1">lat (°)</th>
+                            <th data-key="lon" data-numeric="1">lon (°)</th>
+                            <th data-key="alt" data-numeric="1">alt (km)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reentryBBody">
+                        <tr><td colspan="10" class="empty-msg">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-meta" id="reentryBMeta"></div>
+
+            <!-- ④ Function4 对比摘要 -->
+            <h4 style="color:#a0d8ef; margin: 24px 0 8px 0; font-size:15px;">
+                ④ Function4 对比结果摘要（全局统计）
+            </h4>
+            <div id="fun4Summary">
+                <div class="empty-msg">加载中...</div>
+            </div>
+        </div>
+
+        <!-- 可视化B区：轨道高度变化图 -->
+        <div class="card">
+            <div class="card-title">
+                可视化 B 区 — 轨道高度变化图
+                <span class="badge">Plotly</span>
+            </div>
+            <div class="card-desc">
+                每个 TLE 根数对应一条曲线，标注陨落阈值（80 km）与 SGP4 中止线（120 km）。
+                同时标注两种方法的陨落点：方法A（Function3 SGP4）与方法B（ReentryProgram 均值±范围）。
+                支持鼠标悬停查看详情、滚轮缩放、拖拽平移。
+            </div>
+
+            <!-- 图表控制工具栏 -->
+            <div class="chart-controls" id="chartControls">
+                <div class="control-group">
+                    <span class="control-label">扫描阶段:</span>
+                    <label class="ctrl-toggle"><input type="checkbox" id="showCoarse" checked> 粗扫</label>
+                    <label class="ctrl-toggle"><input type="checkbox" id="showFine" checked> 细扫</label>
+                </div>
+                <div class="control-group">
+                    <span class="control-label">陨落点标记:</span>
+                    <label class="ctrl-toggle"><input type="checkbox" id="showReentryA" checked> 方法A (Function3)</label>
+                    <label class="ctrl-toggle"><input type="checkbox" id="showReentryB" checked> 方法B (ReentryProgram)</label>
+                </div>
+                <div class="control-group">
+                    <span class="control-label">X轴格式:</span>
+                    <label class="ctrl-toggle"><input type="radio" name="xAxisFormat" value="mjd" checked> MJD</label>
+                    <label class="ctrl-toggle"><input type="radio" name="xAxisFormat" value="date"> UTC 日期</label>
+                </div>
+                <button class="btn btn-sm" id="resetZoomBtn" type="button">重置缩放</button>
+            </div>
+
+            <div id="altitudeChart"></div>
+            <div class="table-meta" id="chartMeta" style="margin-top:10px;"></div>
+        </div>
+
+    </div>
+
+    <!-- 底部数据来源说明 -->
+    <footer>
+        <div>数据来源：QER 卫星陨落预报软件（Function3 / Function4 / ReentryProgram）</div>
+        <div style="margin-top:6px;">
+            接口：<code style="color:#a0d8ef;">GET /api/results</code> ·
+            <code style="color:#a0d8ef;">GET /api/ephemeris</code> ·
+            绘图：<a href="https://plotly.com" target="_blank">Plotly.js 2.27.0</a>
+        </div>
+        <div style="margin-top:6px; color:#505070;">
+            © QER Web UI — 卫星陨落预报与可视化
+        </div>
+    </footer>
+
+<script>
+/* ============================================================
+ * QER 可视化页面 - JavaScript 主逻辑
+ * ============================================================ */
+
+// 全局状态
+var gFun3Data = [];
+var gReentryBData = [];
+var gFun4Data = null;
+var gEphData = null;
+var gUnifiedData = [];
+
+// 表格排序状态
+var gSortState = {
+    unified: { key: null, asc: true },
+    fun3: { key: null, asc: true },
+    reentryB: { key: null, asc: true }
+};
+
+/* ---------- 状态指示器 ---------- */
+function setStatus(state, text) {
+    var dot = document.getElementById('statusDot');
+    var txt = document.getElementById('statusText');
+    dot.className = 'dot ' + (state || '');
+    txt.textContent = text;
+}
+
+/* ---------- 数字格式化 ---------- */
+function fmtNum(v, decimals) {
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    if (decimals === undefined) decimals = 4;
+    return Number(v).toFixed(decimals);
+}
+
+/* ---------- 更新汇总统计卡片 ---------- */
+function updateSummaryStats() {
+    var totalEpochs = gUnifiedData.length;
+    var matched = gUnifiedData.filter(function (r) {
+        return r.diffDays !== null && r.diffDays !== undefined;
+    });
+    var matchedCount = matched.length;
+    var diffs = matched.map(function (r) { return r.diffDays; });
+    var meanDiff = diffs.length > 0 ? diffs.reduce(function (s, v) { return s + v; }, 0) / diffs.length : null;
+    var maxDiff = diffs.length > 0 ? Math.max.apply(null, diffs) : null;
+    var minDiff = diffs.length > 0 ? Math.min.apply(null, diffs) : null;
+
+    var lifeA = gUnifiedData
+        .filter(function (r) { return r.methodA_lifeDays !== null && r.methodA_lifeDays !== undefined; })
+        .map(function (r) { return r.methodA_lifeDays; });
+    var meanLifeA = lifeA.length > 0 ? lifeA.reduce(function (s, v) { return s + v; }, 0) / lifeA.length : null;
+
+    var lifeB = gUnifiedData
+        .filter(function (r) { return r.methodB_lifeDaysMean !== null && r.methodB_lifeDaysMean !== undefined; })
+        .map(function (r) { return r.methodB_lifeDaysMean; });
+    var meanLifeB = lifeB.length > 0 ? lifeB.reduce(function (s, v) { return s + v; }, 0) / lifeB.length : null;
+
+    var totalPoints = 0;
+    if (gEphData && gEphData.targets) {
+        gEphData.targets.forEach(function (t) {
+            if (t.points) totalPoints += t.points.length;
+        });
+    }
+
+    document.getElementById('statTotalEpochs').textContent = totalEpochs;
+    document.getElementById('statMatchedPairs').textContent = matchedCount;
+    document.getElementById('statMeanDiff').textContent = meanDiff !== null ? meanDiff.toFixed(4) + ' d' : '—';
+    document.getElementById('statMaxDiff').textContent = maxDiff !== null ? maxDiff.toFixed(4) + ' d' : '—';
+    document.getElementById('statMinDiff').textContent = minDiff !== null ? minDiff.toFixed(4) + ' d' : '—';
+    document.getElementById('statMeanLifeA').textContent = meanLifeA !== null ? meanLifeA.toFixed(4) + ' d' : '—';
+    document.getElementById('statMeanLifeB').textContent = meanLifeB !== null ? meanLifeB.toFixed(4) + ' d' : '—';
+    document.getElementById('statTotalPoints').textContent = totalPoints;
+}
+
+/* ---------- 导出统一对比表为 CSV ---------- */
+function exportUnifiedCsv() {
+    if (!gUnifiedData || gUnifiedData.length === 0) {
+        alert('暂无数据可导出');
+        return;
+    }
+
+    var headers = [
+        'objId', 'mjdEpoch', 'epochDate',
+        'methodA_mjdReentry', 'methodA_reentryDate', 'methodA_lifeDays',
+        'methodB_mjdReentryMean', 'methodB_lifeDaysMean', 'methodB_mjdReentryStd',
+        'methodB_bcRange', 'diffDays'
+    ];
+
+    var headerLabels = [
+        'objID', '历元MJD', '历元时刻(UTC)',
+        '方法A_陨落MJD', '方法A_陨落时刻(UTC)', '方法A_寿命(天)',
+        '方法B_陨落MJD(均值)', '方法B_寿命(天,均值)', '方法B_MJD标准差',
+        '方法B_BC范围', '差异A-B(天)'
+    ];
+
+    var csvLines = [];
+    csvLines.push(headerLabels.join(','));
+
+    gUnifiedData.forEach(function (r) {
+        var row = headers.map(function (key) {
+            var v = r[key];
+            if (v === null || v === undefined) return '';
+            v = String(v);
+            // CSV 转义：含逗号或引号的字段用双引号包裹
+            if (v.indexOf(',') >= 0 || v.indexOf('"') >= 0) {
+                v = '"' + v.replace(/"/g, '""') + '"';
+            }
+            return v;
+        });
+        csvLines.push(row.join(','));
+    });
+
+    // 添加 BOM 以确保 Excel 正确识别 UTF-8
+    var csvContent = '\uFEFF' + csvLines.join('\n');
+    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = 'qer_unified_comparison_' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+/* ---------- 表格渲染：统一对比表 ---------- */
+function renderUnifiedTable(data) {
+    var body = document.getElementById('unifiedBody');
+    var meta = document.getElementById('unifiedMeta');
+
+    if (!data || data.length === 0) {
+        body.innerHTML = '<tr><td colspan="11" class="empty-msg">暂无统一对比数据</td></tr>';
+        meta.textContent = '';
+        return;
+    }
+
+    var rows = data.map(function (r) {
+        var diffColor = '';
+        if (r.diffDays !== null && r.diffDays !== undefined) {
+            if (Math.abs(r.diffDays) < 1) diffColor = 'color:#50fa7b;';
+            else if (Math.abs(r.diffDays) < 3) diffColor = 'color:#ffd700;';
+            else diffColor = 'color:#ff9800;';
+        }
+        return '<tr>' +
+            '<td>' + escapeHtml(r.objId || '—') + '</td>' +
+            '<td class="numeric">' + fmtNum(r.mjdEpoch, 5) + '</td>' +
+            '<td>' + escapeHtml(r.epochDate || '—') + '</td>' +
+            '<td class="numeric" style="color:#ffd700;">' + fmtNum(r.methodA_mjdReentry, 5) + '</td>' +
+            '<td style="color:#ffd700;">' + escapeHtml(r.methodA_reentryDate || '—') + '</td>' +
+            '<td class="numeric" style="color:#ffd700;">' + fmtNum(r.methodA_lifeDays, 4) + '</td>' +
+            '<td class="numeric" style="color:#50fa7b;">' + fmtNum(r.methodB_mjdReentryMean, 5) + '</td>' +
+            '<td class="numeric" style="color:#50fa7b;">' + fmtNum(r.methodB_lifeDaysMean, 4) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.methodB_mjdReentryStd, 5) + '</td>' +
+            '<td>' + escapeHtml(r.methodB_bcRange || '—') + '</td>' +
+            '<td class="numeric" style="' + diffColor + 'font-weight:600;">' + fmtNum(r.diffDays, 4) + '</td>' +
+            '</tr>';
+    }).join('');
+
+    body.innerHTML = rows;
+
+    // 统计信息
+    var matched = data.filter(function (r) { return r.diffDays !== null && r.diffDays !== undefined; });
+    var meanDiff = matched.length > 0
+        ? matched.reduce(function (s, r) { return s + r.diffDays; }, 0) / matched.length
+        : null;
+    meta.textContent = '共 ' + data.length + ' 个 TLE 历元，匹配 ' + matched.length + ' 对' +
+        (meanDiff !== null ? '；平均差异(A-B): ' + meanDiff.toFixed(4) + ' 天' : '');
+}
+
+/* ---------- 表格渲染：Function3 ---------- */
+function renderFun3Table(data) {
+    var body = document.getElementById('fun3Body');
+    var meta = document.getElementById('fun3Meta');
+
+    if (!data || data.length === 0) {
+        body.innerHTML = '<tr><td colspan="8" class="empty-msg">暂无 Function3 数据</td></tr>';
+        meta.textContent = '';
+        return;
+    }
+
+    var rows = data.map(function (r) {
+        return '<tr>' +
+            '<td>' + escapeHtml(r.objId) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.mjdEpoch, 5) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.mjdReentry, 5) + '</td>' +
+            '<td>' + escapeHtml(r.reentryDate) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.lifeDays, 4) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.lat, 4) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.lon, 4) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.alt, 3) + '</td>' +
+            '</tr>';
+    }).join('');
+
+    body.innerHTML = rows;
+    meta.textContent = '共 ' + data.length + ' 条记录（每条对应一个 TLE 根数）';
+}
+
+/* ---------- 表格渲染：ReentryProgram ---------- */
+function renderReentryBTable(data) {
+    var body = document.getElementById('reentryBBody');
+    var meta = document.getElementById('reentryBMeta');
+
+    if (!data || data.length === 0) {
+        body.innerHTML = '<tr><td colspan="10" class="empty-msg">暂无 ReentryProgram 数据</td></tr>';
+        meta.textContent = '';
+        return;
+    }
+
+    var rows = data.map(function (r) {
+        return '<tr>' +
+            '<td class="numeric">' + (r.epochIndex !== undefined ? r.epochIndex : '—') + '</td>' +
+            '<td>' + escapeHtml(r.epochDate || '—') + '</td>' +
+            '<td class="numeric">' + fmtNum(r.mjdEpoch, 5) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.bc, 6) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.mjdReentry, 5) + '</td>' +
+            '<td>' + escapeHtml(r.dateStr || '—') + '</td>' +
+            '<td class="numeric">' + fmtNum(r.lifeDays, 4) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.lat, 3) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.lon, 3) + '</td>' +
+            '<td class="numeric">' + fmtNum(r.alt, 3) + '</td>' +
+            '</tr>';
+    }).join('');
+
+    body.innerHTML = rows;
+    var epochCount = data.filter(function (r, i, arr) {
+        return i === 0 || r.epochIndex !== arr[i - 1].epochIndex;
+    }).length;
+    meta.textContent = '共 ' + data.length + ' 条记录（' + epochCount + ' 个 TLE 历元 × 10 个 BC 假设）；多 TLE + BC 反演 + NRLMSISE-00 完整力学';
+}
+
+/* ---------- 渲染 Function4 摘要 ---------- */
+function renderFun4Summary(fun4) {
+    var box = document.getElementById('fun4Summary');
+
+    if (!fun4) {
+        box.innerHTML = '<div class="empty-msg">暂无 Function4 数据</div>';
+        return;
+    }
+
+    var html = '';
+
+    // 文件来源
+    if (fun4.fileA || fun4.fileB) {
+        html += '<div class="summary-box">';
+        html += '<h4>对比文件来源</h4>';
+        if (fun4.fileA) html += '<div style="font-size:13px; color:#b0c4de; margin-bottom:4px;">' + escapeHtml(fun4.fileA) + '</div>';
+        if (fun4.fileB) html += '<div style="font-size:13px; color:#b0c4de;">' + escapeHtml(fun4.fileB) + '</div>';
+        html += '</div>';
+    }
+
+    // 统计指标
+    var diffLines = fun4.diffStats && fun4.diffStats._lines ? fun4.diffStats._lines : [];
+    var meanDiff = '', rmsDiff = '', medianDiff = '', matched = '';
+    diffLines.forEach(function (line) {
+        if (line.indexOf('匹配目标数') >= 0) matched = line.replace(/^#\s*/, '');
+        if (line.indexOf('平均差异') >= 0) meanDiff = line.replace(/^#\s*/, '');
+        if (line.indexOf('RMS') >= 0) rmsDiff = line.replace(/^#\s*/, '');
+        if (line.indexOf('中位数差异') >= 0) medianDiff = line.replace(/^#\s*/, '');
+    });
+
+    html += '<div class="summary-grid">';
+    if (matched)   html += summaryItem('匹配目标数', matched);
+    if (meanDiff)  html += summaryItem('平均差异', meanDiff);
+    if (rmsDiff)   html += summaryItem('RMS 差异', rmsDiff);
+    if (medianDiff) html += summaryItem('中位数差异', medianDiff);
+    html += '</div>';
+
+    // 来源B 统计摘要
+    if (fun4.bStats && fun4.bStats._lines && fun4.bStats._lines.length > 0) {
+        html += '<h4 style="color:#a0d8ef; margin:18px 0 6px 0; font-size:14px;">来源B 统计摘要</h4>';
+        html += '<div class="bstats-lines">' + escapeHtml(fun4.bStats._lines.join('\n')) + '</div>';
+    }
+
+    // 逐目标对比表
+    if (fun4.comparison && fun4.comparison.length > 0) {
+        html += '<h4 style="color:#a0d8ef; margin:18px 0 6px 0; font-size:14px;">逐目标对比</h4>';
+        html += '<div class="table-wrapper"><table><thead><tr>';
+        html += '<th>objID</th><th>mjdA</th><th>mjdB(mean)</th><th>diff(d)</th><th>|diff|(d)</th><th>duration</th><th>dateA(UTC)</th><th>dateB(UTC)</th>';
+        html += '</tr></thead><tbody>';
+        fun4.comparison.forEach(function (c) {
+            html += '<tr>' +
+                '<td>' + escapeHtml(c.objId) + '</td>' +
+                '<td class="numeric">' + fmtNum(c.mjdA, 5) + '</td>' +
+                '<td class="numeric">' + fmtNum(c.mjdB, 5) + '</td>' +
+                '<td class="numeric">' + fmtNum(c.diff, 4) + '</td>' +
+                '<td class="numeric">' + fmtNum(c.absDiff, 4) + '</td>' +
+                '<td>' + escapeHtml(c.duration) + '</td>' +
+                '<td>' + escapeHtml(c.dateA) + '</td>' +
+                '<td>' + escapeHtml(c.dateB) + '</td>' +
+                '</tr>';
+        });
+        html += '</tbody></table></div>';
+    }
+
+    // 结论
+    if (fun4.conclusion && fun4.conclusion.trim()) {
+        html += '<h4 style="color:#a0d8ef; margin:18px 0 6px 0; font-size:14px;">总体评估</h4>';
+        html += '<div class="conclusion-box">' + escapeHtml(fun4.conclusion.replace(/^#\s*/gm, '').trim()) + '</div>';
+    }
+
+    box.innerHTML = html;
+}
+
+function summaryItem(label, value) {
+    return '<div class="summary-item">' +
+        '<div class="label">' + escapeHtml(label) + '</div>' +
+        '<div class="value" style="font-size:13px;">' + escapeHtml(value) + '</div>' +
+        '</div>';
+}
+
+/* ---------- HTML 转义 ---------- */
+function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/* ---------- 表格排序 ---------- */
+function sortData(data, key, asc, numeric) {
+    var sorted = data.slice();
+    sorted.sort(function (a, b) {
+        var va = a[key], vb = b[key];
+        if (va === null || va === undefined) va = '';
+        if (vb === null || vb === undefined) vb = '';
+        if (numeric) {
+            va = parseFloat(va); vb = parseFloat(vb);
+            if (isNaN(va)) va = -Infinity;
+            if (isNaN(vb)) vb = -Infinity;
+        } else {
+            va = String(va); vb = String(vb);
+        }
+        if (va < vb) return asc ? -1 : 1;
+        if (va > vb) return asc ? 1 : -1;
+        return 0;
+    });
+    return sorted;
+}
+
+function attachSortHandlers(tableId, dataRef, renderFn) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    var ths = table.querySelectorAll('thead th');
+    ths.forEach(function (th) {
+        th.addEventListener('click', function () {
+            var key = th.getAttribute('data-key');
+            if (!key) return;  // 跳过无 data-key 的表头（如分组表头）
+            var numeric = th.getAttribute('data-numeric') === '1';
+            var stateKey = tableId.replace('Table', '');
+            var state = gSortState[stateKey];
+            if (state.key === key) {
+                state.asc = !state.asc;
+            } else {
+                state.key = key;
+                state.asc = true;
+            }
+            // 更新表头样式
+            ths.forEach(function (t) { t.classList.remove('sort-asc', 'sort-desc'); });
+            th.classList.add(state.asc ? 'sort-asc' : 'sort-desc');
+            // 排序并重新渲染
+            var sorted = sortData(dataRef, key, state.asc, numeric);
+            renderFn(sorted);
+        });
+    });
+}
+
+/* ---------- MJD → UTC 日期字符串 ----------
+ * MJD 起点：1858-11-17 00:00:00 UTC
+ * 返回 'YYYY-MM-DD HH:MM' 格式（用于图表轴与悬停）
+ */
+function mjdToUTC(mjd) {
+    if (mjd === null || mjd === undefined || isNaN(mjd)) return '';
+    // MJD → 毫秒数（自 1858-11-17）
+    var msSinceEpoch = mjd * 86400000.0;
+    // JS Date 以 1970-01-01 为起点；计算 MJD 起点对应的 JS 时间戳
+    // 1858-11-17 00:00:00 UTC = -3506716800000 ms（相对 1970）
+    var mjdEpochMs = Date.UTC(1858, 10, 17, 0, 0, 0);  // 月份 0-based
+    var jsMs = mjdEpochMs + msSinceEpoch;
+    var d = new Date(jsMs);
+    if (isNaN(d.getTime())) return '';
+    var yyyy = d.getUTCFullYear();
+    var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    var dd = String(d.getUTCDate()).padStart(2, '0');
+    var hh = String(d.getUTCHours()).padStart(2, '0');
+    var mi = String(d.getUTCMinutes()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd + ' ' + hh + ':' + mi;
+}
+
+/* ---------- MJD → UTC 完整日期时间字符串（含秒） ---------- */
+function mjdToUTCFull(mjd) {
+    if (mjd === null || mjd === undefined || isNaN(mjd)) return '';
+    var msSinceEpoch = mjd * 86400000.0;
+    var mjdEpochMs = Date.UTC(1858, 10, 17, 0, 0, 0);
+    var jsMs = mjdEpochMs + msSinceEpoch;
+    var d = new Date(jsMs);
+    if (isNaN(d.getTime())) return '';
+    var yyyy = d.getUTCFullYear();
+    var mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    var dd = String(d.getUTCDate()).padStart(2, '0');
+    var hh = String(d.getUTCHours()).padStart(2, '0');
+    var mi = String(d.getUTCMinutes()).padStart(2, '0');
+    var ss = String(d.getUTCSeconds()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd + 'T' + hh + ':' + mi + ':' + ss;
+}
+
+/* ---------- 图表控制状态 ---------- */
+var gChartConfig = {
+    showCoarse: true,
+    showFine: true,
+    showReentryA: true,
+    showReentryB: true,
+    xAxisFormat: 'mjd'  // 'mjd' or 'date'
+};
+
+/* ---------- 绘制轨道高度图 ---------- */
+function renderAltitudeChart(targets) {
+    var meta = document.getElementById('chartMeta');
+
+    if (!targets || targets.length === 0) {
+        Plotly.purge('altitudeChart');
+        document.getElementById('altitudeChart').innerHTML =
+            '<div class="empty-msg" style="padding-top:60px;">暂无星历数据，无法绘制高度曲线</div>';
+        meta.textContent = '';
+        return;
+    }
+
+    // 调色板：使用鲜明且可区分的颜色（橘黄色系为主色）
+    var palette = ['#ff6600', '#00d9ff', '#ffd700', '#4caf50', '#ff9800',
+                   '#bd93f9', '#ff79c6', '#8be9fd', '#50fa7b', '#ffb86c'];
+
+    var traces = [];
+    var useDateAxis = gChartConfig.xAxisFormat === 'date';
+
+    // 辅助函数：根据 X 轴格式转换 MJD
+    function toX(mjd) {
+        return useDateAxis ? mjdToUTC(mjd) : mjd;
+    }
+
+    // ---- 1. 绘制每个 TLE 的高度曲线 ----
+    targets.forEach(function (tgt, idx) {
+        if (!tgt.points || tgt.points.length === 0) return;
+
+        // 按阶段过滤
+        var filtered = tgt.points.filter(function (p) {
+            if (p.phase === 'coarse') return gChartConfig.showCoarse;
+            if (p.phase === 'fine') return gChartConfig.showFine;
+            return true;
+        });
+
+        if (filtered.length === 0) return;
+
+        var xs = filtered.map(function (p) { return toX(p.mjd); });
+        var ys = filtered.map(function (p) { return p.alt; });
+        var phases = filtered.map(function (p) { return p.phase; });
+        var epochStr = tgt.mjdEpoch !== null && tgt.mjdEpoch !== undefined
+            ? tgt.mjdEpoch.toFixed(1) : '?';
+        var reentryStr = tgt.mjdReentry !== null && tgt.mjdReentry !== undefined
+            ? tgt.mjdReentry.toFixed(2) : 'N/A';
+        var lifeStr = tgt.lifeDays !== null && tgt.lifeDays !== undefined
+            ? tgt.lifeDays.toFixed(3) : 'N/A';
+
+        // 自定义悬停文本
+        var hoverTexts = filtered.map(function (p, i) {
+            return 'objID: ' + tgt.objId +
+                '<br>MJD: ' + p.mjd.toFixed(4) +
+                '<br>UTC: ' + mjdToUTCFull(p.mjd) +
+                '<br>高度: ' + p.alt.toFixed(2) + ' km' +
+                '<br>阶段: ' + p.phase +
+                '<br>历元: ' + epochStr +
+                '<br>陨落MJD: ' + reentryStr +
+                '<br>寿命: ' + lifeStr + ' d';
+        });
+
+        // 区分粗扫和细扫的线型（细扫用稍粗实线，粗扫用细线）
+        var hasFine = filtered.some(function (p) { return p.phase === 'fine'; });
+        var lineWidth = hasFine ? 1.2 : 1.8;
+
+        traces.push({
+            x: xs,
+            y: ys,
+            mode: 'lines',
+            name: tgt.objId + ' (epoch=' + epochStr + ')',
+            line: {
+                color: palette[idx % palette.length],
+                width: lineWidth,
+                shape: 'linear'
+            },
+            hovertemplate: '<b>%{text}</b><extra></extra>',
+            text: hoverTexts,
+            hoverinfo: 'x+y+text'
+        });
+    });
+
+    // ---- 2. 方法A 陨落点标记（Function3 SGP4） ----
+    if (gChartConfig.showReentryA && gFun3Data && gFun3Data.length > 0) {
+        var aXs = [], aYs = [], aTexts = [];
+        gFun3Data.forEach(function (r) {
+            if (r.mjdReentry !== null && r.mjdReentry !== undefined) {
+                aXs.push(toX(r.mjdReentry));
+                aYs.push(r.alt !== null && r.alt !== undefined ? r.alt : 80);
+                aTexts.push('方法A: Function3 (SGP4)' +
+                    '<br>objID: ' + r.objId +
+                    '<br>陨落MJD: ' + r.mjdReentry.toFixed(4) +
+                    '<br>UTC: ' + mjdToUTCFull(r.mjdReentry) +
+                    '<br>高度: ' + (r.alt !== undefined ? r.alt.toFixed(2) : '80') + ' km' +
+                    '<br>寿命: ' + r.lifeDays.toFixed(4) + ' d');
+            }
+        });
+        if (aXs.length > 0) {
+            traces.push({
+                x: aXs,
+                y: aYs,
+                mode: 'markers',
+                name: '陨落点 · 方法A (Function3)',
+                marker: {
+                    color: '#ffd700',
+                    size: 12,
+                    symbol: 'star',
+                    line: { width: 2, color: '#ffffff' }
+                },
+                hovertemplate: '<b>%{text}</b><extra></extra>',
+                text: aTexts,
+                hoverinfo: 'x+y+text'
+            });
+        }
+    }
+
+    // ---- 3. 方法B 陨落点标记（ReentryProgram 均值 + 范围） ----
+    if (gChartConfig.showReentryB && gUnifiedData && gUnifiedData.length > 0) {
+        var bXs = [], bYs = [], bTexts = [];
+        var bErrX = [], bErrY = [], bErrTexts = [];
+        gUnifiedData.forEach(function (r) {
+            if (r.methodB_mjdReentryMean !== null && r.methodB_mjdReentryMean !== undefined) {
+                bXs.push(toX(r.methodB_mjdReentryMean));
+                bYs.push(80);  // 方法B 陨落高度统一标在 80km 线上
+                bTexts.push('方法B: ReentryProgram (多BC+NRLMSISE-00)' +
+                    '<br>objID: ' + (r.objId || '—') +
+                    '<br>陨落MJD(均值): ' + r.methodB_mjdReentryMean.toFixed(4) +
+                    '<br>UTC: ' + mjdToUTCFull(r.methodB_mjdReentryMean) +
+                    '<br>MJD范围: ' +
+                        (r.methodB_mjdReentryMin !== null ? r.methodB_mjdReentryMin.toFixed(4) : '?') +
+                        ' ~ ' +
+                        (r.methodB_mjdReentryMax !== null ? r.methodB_mjdReentryMax.toFixed(4) : '?') +
+                    '<br>标准差: ' + (r.methodB_mjdReentryStd !== null ? r.methodB_mjdReentryStd.toFixed(4) : '?') +
+                    '<br>寿命(均值): ' +
+                        (r.methodB_lifeDaysMean !== null ? r.methodB_lifeDaysMean.toFixed(4) : '?') + ' d' +
+                    '<br>BC范围: ' + (r.methodB_bcRange || '—'));
+
+                // 误差条数据（水平方向，表示 MJD 的 min~max 范围）
+                if (r.methodB_mjdReentryMin !== null && r.methodB_mjdReentryMax !== null) {
+                    bErrX.push([toX(r.methodB_mjdReentryMin), toX(r.methodB_mjdReentryMax)]);
+                    bErrY.push([80, 80]);
+                    bErrTexts.push('方法B MJD 范围: ' +
+                        r.methodB_mjdReentryMin.toFixed(4) + ' ~ ' + r.methodB_mjdReentryMax.toFixed(4) +
+                        '<br>objID: ' + (r.objId || '—'));
+                }
+            }
+        });
+        if (bXs.length > 0) {
+            // 均值点
+            traces.push({
+                x: bXs,
+                y: bYs,
+                mode: 'markers',
+                name: '陨落点 · 方法B (ReentryProgram 均值)',
+                marker: {
+                    color: '#50fa7b',
+                    size: 12,
+                    symbol: 'diamond',
+                    line: { width: 2, color: '#ffffff' }
+                },
+                hovertemplate: '<b>%{text}</b><extra></extra>',
+                text: bTexts,
+                hoverinfo: 'x+y+text'
+            });
+
+            // 范围误差条（用 box 方式绘制水平线段）
+            if (bErrX.length > 0) {
+                // 为每个范围单独添加一条 trace（用线段表示）
+                bErrX.forEach(function (xPair, i) {
+                    traces.push({
+                        x: xPair,
+                        y: [80, 80],
+                        mode: 'lines',
+                        name: i === 0 ? '方法B MJD 范围 (min~max)' : '',
+                        showlegend: i === 0,
+                        line: {
+                            color: '#50fa7b',
+                            width: 3,
+                            dash: 'dot'
+                        },
+                        opacity: 0.6,
+                        hoverinfo: 'skip'
+                    });
+                });
+            }
+        }
+    }
+
+    // ---- 4. 布局配置 ----
+    var xaxisConfig = {
+        title: { text: useDateAxis ? '时间 (UTC)' : '时间 (MJD)', font: { color: '#a0d8ef', size: 13 } },
+        gridcolor: '#1a3a5c',
+        zerolinecolor: '#1a3a5c',
+        tickfont: { color: '#b0c4de', size: 11 },
+        showspikes: true,
+        spikethickness: 1,
+        spikecolor: '#ff9800',
+        spikemode: 'across'
+    };
+
+    if (useDateAxis) {
+        // 日期轴配置
+        xaxisConfig.type = 'date';
+        xaxisConfig.tickformat = '%m-%d\n%H:%M';
+        xaxisConfig.tickangle = -45;
+    } else {
+        xaxisConfig.type = 'linear';
+    }
+
+    var layout = {
+        title: {
+            text: '轨道高度随时间变化（两方法对比）',
+            font: { color: '#e0e0e0', size: 16, family: 'Microsoft YaHei, sans-serif' }
+        },
+        paper_bgcolor: '#0f3460',
+        plot_bgcolor: '#16213e',
+        font: {
+            color: '#e0e0e0',
+            family: 'Microsoft YaHei, sans-serif',
+            size: 12
+        },
+        xaxis: xaxisConfig,
+        yaxis: {
+            title: { text: '高度 (km)', font: { color: '#a0d8ef', size: 13 } },
+            gridcolor: '#1a3a5c',
+            zerolinecolor: '#1a3a5c',
+            tickfont: { color: '#b0c4de' },
+            showspikes: true,
+            spikethickness: 1,
+            spikecolor: '#ff9800',
+            spikemode: 'across'
+        },
+        legend: {
+            font: { color: '#e0e0e0', size: 11 },
+            bgcolor: 'rgba(22, 33, 62, 0.8)',
+            bordercolor: '#1a3a5c',
+            borderwidth: 1,
+            orientation: 'v',
+            x: 1.02,
+            y: 1
+        },
+        margin: { l: 70, r: 40, t: 60, b: 70 },
+        hovermode: 'closest',
+        hoverlabel: {
+            bgcolor: '#16213e',
+            bordercolor: '#ff9800',
+            font: { color: '#ffffff', size: 12 }
+        },
+        // 参考线：80km 陨落阈值 + 120km SGP4 中止阈值
+        shapes: [
+            {
+                type: 'line',
+                xref: 'paper', x0: 0, x1: 1,
+                yref: 'y', y0: 80, y1: 80,
+                line: { color: '#ff6600', width: 2, dash: 'dash' }
+            },
+            {
+                type: 'line',
+                xref: 'paper', x0: 0, x1: 1,
+                yref: 'y', y0: 120, y1: 120,
+                line: { color: '#ff9800', width: 2, dash: 'dash' }
+            }
+        ],
+        annotations: [
+            {
+                xref: 'paper', x: 1,
+                yref: 'y', y: 80,
+                text: '陨落阈值 80 km',
+                showarrow: false,
+                font: { color: '#ff6600', size: 11 },
+                xanchor: 'right', yanchor: 'bottom',
+                bgcolor: 'rgba(15, 52, 96, 0.7)',
+                borderpad: 2
+            },
+            {
+                xref: 'paper', x: 1,
+                yref: 'y', y: 120,
+                text: 'SGP4 中止线 120 km',
+                showarrow: false,
+                font: { color: '#ff9800', size: 11 },
+                xanchor: 'right', yanchor: 'bottom',
+                bgcolor: 'rgba(15, 52, 96, 0.7)',
+                borderpad: 2
+            }
+        ]
+    };
+
+    var config = {
+        responsive: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+        toImageButtonOptions: {
+            format: 'png',
+            filename: 'qer_altitude_chart',
+            height: 600,
+            width: 1400,
+            scale: 2
+        },
+        scrollZoom: true,
+        displayModeBar: true
+    };
+
+    Plotly.newPlot('altitudeChart', traces, layout, config);
+
+    // 更新元信息
+    var totalPoints = 0;
+    targets.forEach(function (t) {
+        if (t.points) {
+            t.points.forEach(function (p) {
+                if ((p.phase === 'coarse' && gChartConfig.showCoarse) ||
+                    (p.phase === 'fine' && gChartConfig.showFine)) {
+                    totalPoints++;
+                }
+            });
+        }
+    });
+    var reentryACount = gChartConfig.showReentryA && gFun3Data
+        ? gFun3Data.filter(function (r) { return r.mjdReentry !== null && r.mjdReentry !== undefined; }).length : 0;
+    var reentryBCount = gChartConfig.showReentryB && gUnifiedData
+        ? gUnifiedData.filter(function (r) { return r.methodB_mjdReentryMean !== null && r.methodB_mjdReentryMean !== undefined; }).length : 0;
+
+    meta.innerHTML = '共 ' + targets.length + ' 条曲线，' + totalPoints + ' 个采样点；' +
+        '红色虚线=陨落阈值(80km)，橙色虚线=SGP4中止线(120km)<br>' +
+        '<span style="color:#ffd700;">★ 方法A 陨落点: ' + reentryACount + ' 个 (Function3 SGP4)</span> · ' +
+        '<span style="color:#50fa7b;">◆ 方法B 陨落点: ' + reentryBCount + ' 个 (ReentryProgram 均值，虚线表示MJD范围)</span>';
+}
+
+/* ---------- 加载 /api/results ---------- */
+function loadResults() {
+    return fetch('/api/results')
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            gFun3Data = data.fun3 || [];
+            gReentryBData = data.reentryB || [];
+            gFun4Data = data.fun4 || null;
+            gUnifiedData = data.unified || [];
+
+            renderUnifiedTable(gUnifiedData);
+            renderFun3Table(gFun3Data);
+            renderReentryBTable(gReentryBData);
+            renderFun4Summary(gFun4Data);
+            updateSummaryStats();
+
+            // 重新绑定排序（渲染后 DOM 已存在）
+            attachSortHandlers('unifiedTable', gUnifiedData, renderUnifiedTable);
+            attachSortHandlers('fun3Table', gFun3Data, renderFun3Table);
+            attachSortHandlers('reentryBTable', gReentryBData, renderReentryBTable);
+
+            // 显示错误信息
+            if (data.errors) {
+                var errs = [];
+                if (data.errors.fun3) errs.push('fun3: ' + data.errors.fun3);
+                if (data.errors.fun4) errs.push('fun4: ' + data.errors.fun4);
+                if (data.errors.reentryB) errs.push('reentryB: ' + data.errors.reentryB);
+                if (errs.length > 0) {
+                    console.warn('[QER] 部分数据加载错误:', errs);
+                }
+            }
+        })
+        .catch(function (err) {
+            console.error('[QER] 加载 /api/results 失败:', err);
+            renderUnifiedTable([]);
+            renderFun3Table([]);
+            renderReentryBTable([]);
+            document.getElementById('fun4Summary').innerHTML =
+                '<div class="error-msg">加载 /api/results 失败: ' + escapeHtml(err.message) + '</div>';
+        });
+}
+
+/* ---------- 加载 /api/ephemeris ---------- */
+function loadEphemeris() {
+    return fetch('/api/ephemeris')
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            gEphData = data;
+            if (data.error) {
+                console.warn('[QER] 星历数据错误:', data.error);
+                renderAltitudeChart([]);
+                document.getElementById('chartMeta').innerHTML =
+                    '<span style="color:#ffabab;">星历数据错误: ' + escapeHtml(data.error) + '</span>';
+            } else {
+                renderAltitudeChart(data.targets || []);
+            }
+            updateSummaryStats();
+        })
+        .catch(function (err) {
+            console.error('[QER] 加载 /api/ephemeris 失败:', err);
+            renderAltitudeChart([]);
+            document.getElementById('chartMeta').innerHTML =
+                '<span style="color:#ffabab;">加载 /api/ephemeris 失败: ' + escapeHtml(err.message) + '</span>';
+        });
+}
+
+/* ---------- 加载所有数据 ---------- */
+function loadAllData() {
+    var btn = document.getElementById('refreshBtn');
+    btn.disabled = true;
+    setStatus('loading', '正在加载数据...');
+
+    Promise.all([loadResults(), loadEphemeris()])
+        .then(function () {
+            setStatus('', '数据加载完成');
+        })
+        .catch(function (err) {
+            setStatus('error', '加载失败: ' + err.message);
+        })
+        .finally(function () {
+            btn.disabled = false;
+        });
+}
+
+/* ---------- 页面初始化 ---------- */
+document.addEventListener('DOMContentLoaded', function () {
+    loadAllData();
+
+    // 绑定图表控制事件
+    bindChartControls();
+
+    // 窗口大小变化时重新调整图表
+    window.addEventListener('resize', function () {
+        var plotDiv = document.getElementById('altitudeChart');
+        if (plotDiv && plotDiv.data) {
+            Plotly.Plots.resize(plotDiv);
+        }
+    });
+});
+
+/* ---------- 绑定图表控制事件 ---------- */
+function bindChartControls() {
+    // 扫描阶段切换
+    document.getElementById('showCoarse').addEventListener('change', function (e) {
+        gChartConfig.showCoarse = e.target.checked;
+        if (gEphData && gEphData.targets) renderAltitudeChart(gEphData.targets);
+    });
+    document.getElementById('showFine').addEventListener('change', function (e) {
+        gChartConfig.showFine = e.target.checked;
+        if (gEphData && gEphData.targets) renderAltitudeChart(gEphData.targets);
+    });
+
+    // 陨落点标记切换
+    document.getElementById('showReentryA').addEventListener('change', function (e) {
+        gChartConfig.showReentryA = e.target.checked;
+        if (gEphData && gEphData.targets) renderAltitudeChart(gEphData.targets);
+    });
+    document.getElementById('showReentryB').addEventListener('change', function (e) {
+        gChartConfig.showReentryB = e.target.checked;
+        if (gEphData && gEphData.targets) renderAltitudeChart(gEphData.targets);
+    });
+
+    // X 轴格式切换
+    var radios = document.getElementsByName('xAxisFormat');
+    radios.forEach(function (r) {
+        r.addEventListener('change', function (e) {
+            gChartConfig.xAxisFormat = e.target.value;
+            if (gEphData && gEphData.targets) renderAltitudeChart(gEphData.targets);
+        });
+    });
+
+    // 重置缩放
+    document.getElementById('resetZoomBtn').addEventListener('click', function () {
+        var plotDiv = document.getElementById('altitudeChart');
+        if (plotDiv && plotDiv.data) {
+            Plotly.relayout(plotDiv, {
+                'xaxis.autorange': true,
+                'yaxis.autorange': true
+            });
+        }
+    });
+}
+</script>
+
+</body>
+</html>

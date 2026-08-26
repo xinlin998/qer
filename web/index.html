@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QER 卫星陨落预报系统 - 操作面板</title>
+    <style>
+        /* ============ 全局变量与重置 ============ */
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-card-hover: #1a2747;
+            --accent-blue: #0f3460;
+            --accent-red: #ff9800;   /* 已由红色(#e94560)改为橘黄色(#ff9800) */
+            --accent-green: #2ecc71;
+            --accent-orange: #f39c12;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0b8;
+            --text-muted: #6c7293;
+            --border-color: #2a3358;
+            --console-bg: #0d1117;
+            --console-border: #30363d;
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --radius: 10px;
+            --radius-sm: 6px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                         "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background-image:
+                radial-gradient(circle at 15% 20%, rgba(15, 52, 96, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(255, 152, 0, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* ============ 顶部标题栏 ============ */
+        header {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--accent-blue) 100%);
+            border-bottom: 2px solid var(--accent-red);
+            padding: 18px 32px;
+            box-shadow: var(--shadow-md);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-title h1 {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #ffffff, #ff9800);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-title .logo {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--accent-red), var(--accent-blue));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            color: #fff;
+            box-shadow: 0 0 12px rgba(255, 152, 0, 0.4);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4);
+            transition: var(--transition);
+        }
+
+        .status-dot.online {
+            background: var(--accent-green);
+            animation: pulse-green 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: var(--accent-red);
+            animation: pulse-red 1.5s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.6); }
+            70% { box-shadow: 0 0 0 8px rgba(46, 204, 113, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.6); }
+            70% { box-shadow: 0 0 0 8px rgba(255, 152, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
+        }
+
+        .status-text {
+            color: var(--text-secondary);
+        }
+
+        .status-text strong {
+            color: var(--text-primary);
+        }
+
+        /* ============ 主容器 ============ */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 28px 32px 60px;
+        }
+
+        section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            padding-left: 12px;
+            border-left: 3px solid var(--accent-red);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title .hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* ============ 功能选择卡片 ============ */
+        .function-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .function-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .function-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--accent-blue);
+            transition: var(--transition);
+        }
+
+        .function-card:not(.disabled):hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-red);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .function-card:not(.disabled):hover::before {
+            background: var(--accent-red);
+        }
+
+        .function-card.active {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-red);
+            box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.3), var(--shadow-md);
+        }
+
+        .function-card.active::before {
+            background: var(--accent-red);
+        }
+
+        .function-card.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: var(--bg-card);
+        }
+
+        .function-card .fn-number {
+            display: inline-block;
+            background: var(--accent-blue);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .function-card.active .fn-number {
+            background: var(--accent-red);
+        }
+
+        .function-card.disabled .fn-number {
+            background: var(--text-muted);
+        }
+
+        .function-card .fn-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .function-card .fn-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .function-card.disabled .fn-desc {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* ============ 参数配置表单 ============ */
+        .form-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .form-group label .param-key {
+            font-family: "Consolas", "Monaco", monospace;
+            color: var(--accent-red);
+            font-size: 12px;
+            background: rgba(255, 152, 0, 0.1);
+            padding: 1px 6px;
+            border-radius: 3px;
+        }
+
+        .form-group input,
+        .form-group select {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 9px 12px;
+            font-size: 13px;
+            font-family: "Consolas", "Monaco", monospace;
+            transition: var(--transition);
+            width: 100%;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent-red);
+            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.15);
+        }
+
+        .form-group input:hover,
+        .form-group select:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a0a0b8' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+        }
+
+        .form-group select option {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .form-empty {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 30px 20px;
+            font-size: 13px;
+        }
+
+        /* ============ 运行按钮 ============ */
+        .run-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .run-btn {
+            background: linear-gradient(135deg, var(--accent-red) 0%, #cc7a00 100%);
+            color: #fff;
+            border: none;
+            padding: 12px 36px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 14px rgba(255, 152, 0, 0.35);
+            font-family: inherit;
+            letter-spacing: 1px;
+        }
+
+        .run-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.5);
+        }
+
+        .run-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .run-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #0a2744 100%);
+        }
+
+        .run-btn .spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .run-btn.loading .spinner {
+            display: block;
+        }
+
+        .run-btn.loading .btn-text {
+            opacity: 0.9;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .run-info {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* ============ 运行结果区 ============ */
+        .result-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .result-header .title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .exit-code {
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 12px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .exit-code.success {
+            background: rgba(46, 204, 113, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+
+        .exit-code.error {
+            background: rgba(255, 152, 0, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+
+        .exit-code.pending {
+            background: rgba(243, 156, 18, 0.15);
+            color: var(--accent-orange);
+            border: 1px solid rgba(243, 156, 18, 0.3);
+        }
+
+        .console-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .console-tab {
+            padding: 10px 20px;
+            font-size: 13px;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: var(--transition);
+            font-family: "Consolas", "Monaco", monospace;
+        }
+
+        .console-tab:hover {
+            color: var(--text-secondary);
+        }
+
+        .console-tab.active {
+            color: var(--accent-red);
+            border-bottom-color: var(--accent-red);
+            background: rgba(255, 152, 0, 0.05);
+        }
+
+        .console-body {
+            background: var(--console-bg);
+            border: 1px solid var(--console-border);
+            margin: 16px;
+            border-radius: var(--radius-sm);
+            height: 340px;
+            overflow: auto;
+            font-family: "Consolas", "Monaco", "Courier New", monospace;
+            font-size: 12.5px;
+            line-height: 1.6;
+        }
+
+        .console-output {
+            padding: 14px 16px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #c9d1d9;
+        }
+
+        .console-output.stderr-stream {
+            color: #ff7b72;
+        }
+
+        .console-empty {
+            color: var(--text-muted);
+            font-style: italic;
+            text-align: center;
+            padding: 60px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 13px;
+        }
+
+        .console-pane {
+            display: none;
+        }
+
+        .console-pane.active {
+            display: block;
+        }
+
+        /* 滚动条样式 */
+        .console-body::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        .console-body::-webkit-scrollbar-track {
+            background: var(--console-bg);
+        }
+
+        .console-body::-webkit-scrollbar-thumb {
+            background: var(--console-border);
+            border-radius: 5px;
+        }
+
+        .console-body::-webkit-scrollbar-thumb:hover {
+            background: #484f58;
+        }
+
+        /* ============ 可视化链接 ============ */
+        .visualize-link {
+            display: none;
+            margin-top: 16px;
+            text-align: center;
+        }
+
+        .visualize-link.show {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .visualize-link a {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, #1a4a7a 100%);
+            color: #fff;
+            text-decoration: none;
+            padding: 12px 32px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+            box-shadow: 0 4px 14px rgba(15, 52, 96, 0.4);
+        }
+
+        .visualize-link a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(15, 52, 96, 0.6);
+        }
+
+        /* ============ 底部 ============ */
+        footer {
+            text-align: center;
+            padding: 24px 32px;
+            color: var(--text-muted);
+            font-size: 12px;
+            border-top: 1px solid var(--border-color);
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: var(--accent-red);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        footer a:hover {
+            color: #ffb74d;
+            text-decoration: underline;
+        }
+
+        /* ============ 提示框 ============ */
+        .toast {
+            position: fixed;
+            top: 90px;
+            right: 32px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-red);
+            padding: 14px 20px;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            font-size: 13px;
+            color: var(--text-primary);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(120%);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 360px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left-color: var(--accent-green);
+        }
+
+        .toast.error {
+            border-left-color: var(--accent-red);
+        }
+
+        .toast.warning {
+            border-left-color: var(--accent-orange);
+        }
+
+        /* ============ 响应式 ============ */
+        @media (max-width: 768px) {
+            main {
+                padding: 20px 16px 40px;
+            }
+
+            header {
+                padding: 14px 16px;
+            }
+
+            .header-title h1 {
+                font-size: 18px;
+            }
+
+            .form-group {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .form-group label {
+                font-size: 12px;
+            }
+
+            .function-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .console-body {
+                height: 260px;
+                margin: 12px;
+            }
+
+            .status-indicator {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============ 顶部标题栏 ============ -->
+    <header>
+        <div class="header-content">
+            <div class="header-title">
+                <div class="logo">QER</div>
+                <h1>QER 卫星陨落预报系统</h1>
+            </div>
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span class="status-text" id="statusText">检测中...</span>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- ============ 功能选择区 ============ -->
+        <section>
+            <h2 class="section-title">
+                功能选择
+                <span class="hint">点击卡片切换功能模式</span>
+            </h2>
+            <div class="function-grid" id="functionGrid">
+                <div class="function-card" data-function="0">
+                    <span class="fn-number">Function 0</span>
+                    <div class="fn-name">超低轨筛选</div>
+                    <div class="fn-desc">从 TLE 目录中筛选近地点高度低于阈值的低轨目标</div>
+                </div>
+                <div class="function-card" data-function="1">
+                    <span class="fn-number">Function 1</span>
+                    <div class="fn-name">TLE质量评估</div>
+                    <div class="fn-desc">对 TLE 数据进行质量评估（已临时打开）</div>
+                </div>
+                <div class="function-card" data-function="2">
+                    <span class="fn-number">Function 2</span>
+                    <div class="fn-name">陨落预报新算法</div>
+                    <div class="fn-desc">对批量 TLE 目标进行陨落预报与寿命分析</div>
+                </div>
+                <div class="function-card active" data-function="3">
+                    <span class="fn-number">Function 3</span>
+                    <div class="fn-name">传统算法</div>
+                    <div class="fn-desc">对单个 TLE 目标进行高精度陨落预报并输出星历</div>
+                </div>
+                <div class="function-card" data-function="4">
+                    <span class="fn-number">Function 4</span>
+                    <div class="fn-name">结果对比</div>
+                    <div class="fn-desc">对比两组陨落预报结果，输出差异统计</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ 参数配置表单 ============ -->
+        <section>
+            <h2 class="section-title">
+                参数配置
+                <span class="hint" id="formHint">当前功能：Function 3</span>
+            </h2>
+            <div class="form-container" id="formContainer">
+                <!-- 表单字段由 JS 动态生成 -->
+            </div>
+        </section>
+
+        <!-- ============ 运行按钮 ============ -->
+        <section>
+            <h2 class="section-title">执行运行</h2>
+            <div class="run-section">
+                <button class="run-btn" id="runBtn">
+                    <span class="spinner"></span>
+                    <span class="btn-text">运行 QER</span>
+                </button>
+                <span class="run-info" id="runInfo">点击按钮将参数提交至 QER.exe 执行</span>
+            </div>
+        </section>
+
+        <!-- ============ 运行结果区 ============ -->
+        <section>
+            <h2 class="section-title">运行结果</h2>
+            <div class="result-container">
+                <div class="result-header">
+                    <div class="title">
+                        <span>控制台输出</span>
+                        <span class="exit-code pending" id="exitCode">未运行</span>
+                    </div>
+                </div>
+                <div class="console-tabs">
+                    <div class="console-tab active" data-tab="stdout">stdout</div>
+                    <div class="console-tab" data-tab="stderr">stderr</div>
+                </div>
+                <div class="console-body">
+                    <div class="console-pane active" id="paneStdout">
+                        <div class="console-output" id="stdoutOutput">
+                            <div class="console-empty">暂无输出，点击"运行 QER"按钮开始执行</div>
+                        </div>
+                    </div>
+                    <div class="console-pane" id="paneStderr">
+                        <div class="console-output stderr-stream" id="stderrOutput">
+                            <div class="console-empty">暂无错误输出</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 可视化链接 -->
+            <div class="visualize-link" id="visualizeLink">
+                <a href="/visualize" target="_blank">
+                    <span>查看可视化</span>
+                    <span>→</span>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div>QER 卫星陨落预报系统 · 操作面板 ·
+            <a href="/visualize">前往可视化页面</a>
+        </div>
+    </footer>
+
+    <!-- 提示框 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ============ 默认参数配置 ============
+        const DEFAULT_PARAMS = {
+            function: "3",
+            // Function 0/2
+            tleFile0: "catalog-20250311-3line.tle",
+            PerigeeHeightThreshold: "300.0",
+            outFile0: "test/out_fun0.txt",
+            objectType: "all",
+            // Function 1
+            tleFile1: "5.tle",
+            forecastDays: "3.0",
+            intervalDays: "0.5",
+            outFile1: "Fun1out.txt",
+            // Function 3
+            tleFile3: "input/test_decay.tle",
+            forecastDays3: "5.0",
+            stepSec3: "60.0",
+            reentryHeightKm: "80.0",
+            outFile3: "test/out_fun3.txt",
+            outEphFile3: "test/out_fun3.eph",
+            // Function 4
+            reentryFileA: "test/out_fun3.txt",
+            reentryFileB: "../BCbyTLE/ReentryProgram/files/21retimes-last.txt",
+            outFile4: "test/out_fun4.txt",
+        };
+
+        // ============ 功能字段定义 ============
+        const FUNCTION_FIELDS = {
+            "0": [
+                { key: "tleFile0", label: "TLE 文件路径", type: "text" },
+                { key: "PerigeeHeightThreshold", label: "近地点高度阈值 (km)", type: "text" },
+                { key: "outFile0", label: "输出文件路径", type: "text" },
+                { key: "objectType", label: "目标类型", type: "select", options: ["all", "payload", "rocket", "debris"] },
+            ],
+            "1": [
+                { key: "tleFile1", label: "TLE 文件路径", type: "text" },
+                { key: "forecastDays", label: "预报天数 (天)", type: "text" },
+                { key: "intervalDays", label: "采样间隔 (天)", type: "text" },
+                { key: "outFile1", label: "输出文件路径", type: "text" },
+            ],
+            "2": [
+                { key: "tleFile0", label: "TLE 文件路径", type: "text" },
+                { key: "PerigeeHeightThreshold", label: "近地点高度阈值 (km)", type: "text" },
+                { key: "outFile0", label: "输出文件路径", type: "text" },
+                { key: "objectType", label: "目标类型", type: "select", options: ["all", "payload", "rocket", "debris"] },
+            ],
+            "3": [
+                { key: "tleFile3", label: "TLE 文件路径", type: "text" },
+                { key: "forecastDays3", label: "预报天数 (天)", type: "text" },
+                { key: "stepSec3", label: "步长 (秒)", type: "text" },
+                { key: "reentryHeightKm", label: "陨落高度 (km)", type: "text" },
+                { key: "outFile3", label: "结果输出文件", type: "text" },
+                { key: "outEphFile3", label: "星历输出文件", type: "text" },
+            ],
+            "4": [
+                { key: "reentryFileA", label: "陨落文件 A", type: "text" },
+                { key: "reentryFileB", label: "陨落文件 B", type: "text" },
+                { key: "outFile4", label: "对比结果输出", type: "text" },
+            ],
+        };
+
+        const FUNCTION_NAMES = {
+            "0": "Function 0 - 超低轨筛选",
+            "1": "Function 1 - TLE质量评估",
+            "2": "Function 2 - 陨落预报新算法",
+            "3": "Function 3 - 传统算法",
+            "4": "Function 4 - 结果对比",
+        };
+
+        // 当前状态
+        let currentFunction = "3";
+        let isRunning = false;
+        let lastRunSuccess = false;
+
+        // ============ DOM 元素 ============
+        const statusDot = document.getElementById("statusDot");
+        const statusText = document.getElementById("statusText");
+        const functionGrid = document.getElementById("functionGrid");
+        const formContainer = document.getElementById("formContainer");
+        const formHint = document.getElementById("formHint");
+        const runBtn = document.getElementById("runBtn");
+        const runInfo = document.getElementById("runInfo");
+        const exitCodeEl = document.getElementById("exitCode");
+        const stdoutOutput = document.getElementById("stdoutOutput");
+        const stderrOutput = document.getElementById("stderrOutput");
+        const visualizeLink = document.getElementById("visualizeLink");
+        const toast = document.getElementById("toast");
+
+        // ============ 工具函数 ============
+        function showToast(message, type = "info") {
+            toast.textContent = message;
+            toast.className = "toast " + type;
+            // 触发重排以重启动画
+            void toast.offsetWidth;
+            toast.classList.add("show");
+            setTimeout(() => {
+                toast.classList.remove("show");
+            }, 3500);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============ 状态检查 ============
+        async function checkStatus() {
+            try {
+                const response = await fetch("/api/status");
+                if (!response.ok) {
+                    throw new Error("HTTP " + response.status);
+                }
+                const data = await response.json();
+                updateStatusIndicator(data);
+            } catch (err) {
+                console.error("状态检查失败:", err);
+                statusDot.className = "status-dot offline";
+                statusText.innerHTML = "状态检查失败 <strong>(服务未响应)</strong>";
+            }
+        }
+
+        function updateStatusIndicator(data) {
+            if (data.qerExeExists) {
+                statusDot.className = "status-dot online";
+                statusText.innerHTML = "QER.exe <strong>已就绪</strong>";
+            } else {
+                statusDot.className = "status-dot offline";
+                statusText.innerHTML = "QER.exe <strong>未找到</strong>";
+            }
+        }
+
+        // ============ 功能卡片切换 ============
+        function selectFunction(fn) {
+            currentFunction = fn;
+
+            // 更新卡片激活状态
+            document.querySelectorAll(".function-card").forEach(card => {
+                if (card.dataset.function === fn) {
+                    card.classList.add("active");
+                } else {
+                    card.classList.remove("active");
+                }
+            });
+
+            // 更新提示并渲染表单
+            formHint.textContent = "当前功能：" + FUNCTION_NAMES[fn];
+            renderForm(fn);
+        }
+
+        // ============ 渲染参数表单 ============
+        function renderForm(fn) {
+            const fields = FUNCTION_FIELDS[fn];
+            if (!fields || fields.length === 0) {
+                formContainer.innerHTML = '<div class="form-empty">该功能无需配置参数</div>';
+                return;
+            }
+
+            let html = "";
+            fields.forEach(field => {
+                const value = DEFAULT_PARAMS[field.key] || "";
+                if (field.type === "select") {
+                    const options = field.options
+                        .map(opt => `<option value="${opt}" ${opt === value ? "selected" : ""}>${opt}</option>`)
+                        .join("");
+                    html += `
+                        <div class="form-group">
+                            <label>${field.label} <span class="param-key">${field.key}</span></label>
+                            <select data-param="${field.key}">${options}</select>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="form-group">
+                            <label>${field.label} <span class="param-key">${field.key}</span></label>
+                            <input type="${field.type}" data-param="${field.key}" value="${escapeHtml(value)}" />
+                        </div>
+                    `;
+                }
+            });
+            formContainer.innerHTML = html;
+        }
+
+        // ============ 收集表单参数 ============
+        function collectParams() {
+            const params = { function: currentFunction };
+            document.querySelectorAll("[data-param]").forEach(el => {
+                params[el.dataset.param] = el.value;
+            });
+            return params;
+        }
+
+        // ============ 运行 QER ============
+        async function runQER() {
+            if (isRunning) return;
+
+            // 检查 QER.exe 状态
+            if (statusDot.classList.contains("offline")) {
+                showToast("QER.exe 不可用，请先检查状态", "error");
+                return;
+            }
+
+            isRunning = true;
+            runBtn.classList.add("loading");
+            runBtn.disabled = true;
+            runBtn.querySelector(".btn-text").textContent = "运行中...";
+            runInfo.textContent = "正在执行 QER.exe，请稍候...";
+
+            // 重置结果区
+            exitCodeEl.className = "exit-code pending";
+            exitCodeEl.textContent = "运行中";
+            stdoutOutput.innerHTML = '<div class="console-empty">等待输出...</div>';
+            stderrOutput.innerHTML = '<div class="console-empty">等待输出...</div>';
+            visualizeLink.classList.remove("show");
+
+            const params = collectParams();
+
+            try {
+                const response = await fetch("/api/run", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(params),
+                });
+
+                if (!response.ok) {
+                    throw new Error("HTTP " + response.status);
+                }
+
+                const data = await response.json();
+                displayResult(data);
+            } catch (err) {
+                console.error("运行失败:", err);
+                exitCodeEl.className = "exit-code error";
+                exitCodeEl.textContent = "请求失败";
+                stdoutOutput.innerHTML = '<div class="console-empty">运行请求失败</div>';
+                stderrOutput.innerHTML = `<div class="console-empty">错误: ${escapeHtml(err.message)}<br>请确认 Web 服务正常运行</div>`;
+                showToast("运行请求失败: " + err.message, "error");
+            } finally {
+                isRunning = false;
+                runBtn.classList.remove("loading");
+                runBtn.disabled = false;
+                runBtn.querySelector(".btn-text").textContent = "运行 QER";
+                runInfo.textContent = "点击按钮将参数提交至 QER.exe 执行";
+            }
+        }
+
+        // ============ 显示运行结果 ============
+        function displayResult(data) {
+            const code = data.returnCode;
+            const stdout = data.stdout || "";
+            const stderr = data.stderr || "";
+
+            // 退出码
+            if (code === 0) {
+                exitCodeEl.className = "exit-code success";
+                exitCodeEl.textContent = "退出码: 0 (成功)";
+                lastRunSuccess = true;
+                showToast("QER 运行成功！", "success");
+                // 显示可视化链接
+                visualizeLink.classList.add("show");
+            } else {
+                exitCodeEl.className = "exit-code error";
+                exitCodeEl.textContent = "退出码: " + code + " (失败)";
+                lastRunSuccess = false;
+                showToast("QER 运行失败，退出码: " + code, "error");
+            }
+
+            // stdout
+            if (stdout.trim()) {
+                stdoutOutput.textContent = stdout;
+            } else {
+                stdoutOutput.innerHTML = '<div class="console-empty">(无标准输出)</div>';
+            }
+
+            // stderr
+            if (stderr.trim()) {
+                stderrOutput.textContent = stderr;
+            } else {
+                stderrOutput.innerHTML = '<div class="console-empty">(无错误输出)</div>';
+            }
+        }
+
+        // ============ 控制台 Tab 切换 ============
+        function switchTab(tabName) {
+            document.querySelectorAll(".console-tab").forEach(tab => {
+                tab.classList.toggle("active", tab.dataset.tab === tabName);
+            });
+            document.querySelectorAll(".console-pane").forEach(pane => {
+                pane.classList.remove("active");
+            });
+            if (tabName === "stdout") {
+                document.getElementById("paneStdout").classList.add("active");
+            } else {
+                document.getElementById("paneStderr").classList.add("active");
+            }
+        }
+
+        // ============ 事件绑定 ============
+        // 功能卡片点击
+        functionGrid.addEventListener("click", e => {
+            const card = e.target.closest(".function-card");
+            if (!card) return;
+            const fn = card.dataset.function;
+            selectFunction(fn);
+        });
+
+        // 运行按钮点击
+        runBtn.addEventListener("click", runQER);
+
+        // 控制台 Tab 切换
+        document.querySelectorAll(".console-tab").forEach(tab => {
+            tab.addEventListener("click", () => switchTab(tab.dataset.tab));
+        });
+
+        // ============ 初始化 ============
+        function init() {
+            // 渲染默认表单 (Function 3)
+            renderForm(currentFunction);
+            // 检查 QER.exe 状态
+            checkStatus();
+            // 定时刷新状态 (每 30 秒)
+            setInterval(checkStatus, 30000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
