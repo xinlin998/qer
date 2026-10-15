@@ -1,0 +1,12 @@
+# ====== �?TLE 轨道预报陨落（Function3�?======
+# 运行开始时�?UTC): 2026-10-15 07:14:45
+# 输入TLE: TLE_20261015.tle
+# 最大预报天�? 5 ; 基础步长(�?: 60 ; 陨落高度阈�?km): 80
+# 算法：两阶段搜索——粗�?10x基础步长)定位窗口，细�?基础步长)精化
+# �?：vecr 单位为米；H_DECAY=120km 为传播器(SGP4)内建陨落阈值，
+#       若用�?reentryHeightKm < 120，将取传播器中止前的最后采样点作为陨落近似
+# �?：lat 为地心纬�?≈地理纬�?；lon �?ECI 系赤�?非地理经�?
+#objID       mjdEpoch       mjdReentry    reentryDate(UTC)         lifeDays   lat(deg)   lon(deg)   alt(km)
+ 67686   61326.581409   NaN                   NO-REENTRY-WITHIN-5.000000d   NaN   NaN   NaN   NaN
+# 总计目标�? 1 ; 成功陨落: 0 ; 未陨�? 1
+# 运行结束时间(UTC): 2026-10-15 07:14:45

@@ -1,0 +1,12 @@
+# TLE count:4
+#   Abnormal data count:0
+#   Ultra-Low Earth Orbit count:1
+#   Ultra-Low LEO(e<=0.25) count:1
+#   Ultra-Low HEO(e> 0.25) count:0
+#   Ultra-Low LEO(e<=0.25) IDs:
+67686
+#   Ultra-Low HEO(e>0.25) IDs:
+# ---  Ultra-Low LEO Orbits --- 
+#index  objID          mjd           a(m)         e    i(deg)    Q(deg)    w(deg)    M(deg)  period(min)      ha(km)      hp(km)
+0 67686    61326.58140857      6641.749410         0.001179        51.613900        41.143500       320.932400        39.083500        89.780798       271.444397       255.781823
+# ---  Ultra-Low HEO Orbits --- 

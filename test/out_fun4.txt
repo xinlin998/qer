@@ -1,0 +1,25 @@
+# ====== 两种陨落结果对比（Function4�?======
+# 运行时间(UTC): 2026-10-15 03:56:26
+# 文件A（单TLE预报�? test/out_fun3.txt ; 记录�? 5
+# 文件B（多TLE/ReentryProgram�? TleReentry/TleReentry_height-last.txt ; 记录�? 0
+#
+# 来源A：Function3 单条 TLE 长期 SGP4 外推（无大气模型，仅几何判定）\n# 来源B：Fortran ReentryProgram（多 TLE + BC 反演 + NRLMSISE-00 完整力学）\n#
+# ====== 来源B 统计摘要 ======
+# 有效样本�? 0
+# 均�? mjd: 0.000000
+# 标准�?days): 0.000000 ; RMS(mjd): 0.000000
+# 最�?mjd: 0.000000 ; 最�?mjd: 0.000000 ; 极差(days): 0.000000
+# 中位�?mjd: 0.000000 ; P25: 0.000000 ; P75: 0.000000 ; IQR(days): 0.000000
+
+# ====== 逐目标对�?======
+# 列说明：objID | mjdA | mjdB(mean) | diff(days) | |diff|(days) | duration | dateA(UTC) | dateB(UTC-mean)
+# objID               mjdA    mjdB(mean)       diff(d)     |diff|(d)        duration              dateA(UTC)         dateB(UTC-mean)
+  48274                NaN           NaN           NaN           NaN             N/A                     N/A                     N/A
+  00011                NaN           NaN           NaN           NaN             N/A                     N/A                     N/A
+  00020                NaN           NaN           NaN           NaN             N/A                     N/A                     N/A
+  00022                NaN           NaN           NaN           NaN             N/A                     N/A                     N/A
+  T0029                NaN           NaN           NaN           NaN             N/A                     N/A                     N/A
+
+# ====== 对比统计 ======
+# 匹配目标�? 0 ; 未匹�?任一侧无陨落): 5
+# 运行结束时间(UTC): 2026-10-15 03:56:26

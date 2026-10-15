@@ -1,0 +1,17 @@
+# ===== Function 2: 陨落预报新算法（�?TLE + BC 反演 + NRLMSISE-00�?====
+# 输入 TLE 文件: input/AEOLUS_43600_Function2_6epochs.tle
+# ReentryProgram 目录: TleReentry
+# 运行时间: 2026-10-15 07:53:26
+# ReentryProgram 返回�? 64
+
+# ===== 最终陨落预报结果（2σ 统计平均�?====
+
+# ===== BC 反演结果 =====
+# index  mjd_TLE       BC(m2/kg)     a_tle(AU)
+
+# ===== 各历元陨落时刻（6 历元 × 6 BC�?====
+# BC(m2/kg)  mjd_reentry  reentry_time(UTC)  lat(deg)  lon(deg)  alt(km)
+
+# ===== 陨落阶段高度变化数据 =====
+# mjd  lat(deg)  lon(deg)  alt(km)  lifeDays
+

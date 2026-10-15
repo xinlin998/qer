@@ -1,0 +1,16 @@
+# ====== TLE_Update_Frequency ====== 
+#objID   count  freq(1/day)  freq_sigma(1/day)
+     4     4.268231     0.000000  
+
+# ====== TLE_Accuracy ====== 
+#index  PreDays Rerr(m)  Terr(m)  Nerr(m)  disErr(m)
+
+# ====== TLE_Quality_Assessment ====== 
+#nTLE  adot_std   adot_max  adot_avg  snr_std   snr_max  snr_avg  nCull  rateCull
+3  130501.795949  650898.045252  482413.966412  0.509115  1.291048  0.860699  0  0.000000
+
+# ====== kepler elements of TLE data ====== 
+#objID  mjd   a(km)    e   i(deg)   Q(deg)    w(deg)  M(deg)
+ 25544    61326.82178372      6798.209125         0.000671        51.632500        73.008900       259.325800       100.697500
+ 67687    61327.05842372      6688.547949         0.001164        51.620100        47.497000       312.158500        47.843000
+ 48274    61327.28427591      6763.741948         0.000050        41.469500       318.640900       117.179500       242.909400

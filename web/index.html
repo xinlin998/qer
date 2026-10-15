@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QER 卫星陨落预报系统 - 操作面板</title>
     <style>
@@ -780,7 +781,7 @@
         <section>
             <h2 class="section-title">执行运行</h2>
             <div class="run-section">
-                <button class="run-btn" id="runBtn">
+                <button type="button" class="run-btn" id="runBtn">
                     <span class="spinner"></span>
                     <span class="btn-text">运行 QER</span>
                 </button>
@@ -839,27 +840,31 @@
         // ============ 默认参数配置 ============
         const DEFAULT_PARAMS = {
             function: "3",
-            // Function 0/2
+            // Function 0
             tleFile0: "catalog-20250311-3line.tle",
             PerigeeHeightThreshold: "300.0",
-            outFile0: "test/out_fun0.txt",
+            outFile0: "output/out_fun0.txt",
             objectType: "all",
             // Function 1
             tleFile1: "5.tle",
             forecastDays: "3.0",
             intervalDays: "0.5",
-            outFile1: "Fun1out.txt",
+            outFile1: "output/out_fun1.txt",
+            // Function 2
+            tleFile2: "input/qer_validation_20261015.tle",
+            tleReentryDir: "TleReentry",
+            outFile2: "output/out_fun2.txt",
             // Function 3
             tleFile3: "input/test_decay.tle",
             forecastDays3: "5.0",
             stepSec3: "60.0",
             reentryHeightKm: "80.0",
-            outFile3: "test/out_fun3.txt",
-            outEphFile3: "test/out_fun3.eph",
+            outFile3: "output/out_fun3.txt",
+            outEphFile3: "output/out_fun3.eph",
             // Function 4
             reentryFileA: "test/out_fun3.txt",
             reentryFileB: "../BCbyTLE/ReentryProgram/files/21retimes-last.txt",
-            outFile4: "test/out_fun4.txt",
+            outFile4: "output/out_fun4.txt",
         };
 
         // ============ 功能字段定义 ============
@@ -877,10 +882,9 @@
                 { key: "outFile1", label: "输出文件路径", type: "text" },
             ],
             "2": [
-                { key: "tleFile0", label: "TLE 文件路径", type: "text" },
-                { key: "PerigeeHeightThreshold", label: "近地点高度阈值 (km)", type: "text" },
-                { key: "outFile0", label: "输出文件路径", type: "text" },
-                { key: "objectType", label: "目标类型", type: "select", options: ["all", "payload", "rocket", "debris"] },
+                { key: "tleFile2", label: "TLE 文件路径", type: "text" },
+                { key: "tleReentryDir", label: "再入计算组件目录", type: "text" },
+                { key: "outFile2", label: "输出文件路径", type: "text" },
             ],
             "3": [
                 { key: "tleFile3", label: "TLE 文件路径", type: "text" },
@@ -906,9 +910,41 @@
         };
 
         // 当前状态
-        let currentFunction = "3";
+        const STORAGE_KEY = "qer_web_ui_state";
+
+        function loadUIState() {
+            try {
+                const saved = sessionStorage.getItem(STORAGE_KEY);
+                return saved ? JSON.parse(saved) : {};
+            } catch (error) {
+                console.warn("读取页面参数缓存失败:", error);
+                return {};
+            }
+        }
+
+        const savedUIState = loadUIState();
+        const paramState = {
+            ...DEFAULT_PARAMS,
+            ...(savedUIState.params || {}),
+        };
+
+        let currentFunction = savedUIState.currentFunction || "3";
         let isRunning = false;
         let lastRunSuccess = false;
+
+        function saveUIState() {
+            try {
+                sessionStorage.setItem(
+                    STORAGE_KEY,
+                    JSON.stringify({
+                        currentFunction,
+                        params: paramState,
+                    })
+                );
+            } catch (error) {
+                console.warn("保存页面参数缓存失败:", error);
+            }
+        }
 
         // ============ DOM 元素 ============
         const statusDot = document.getElementById("statusDot");
@@ -942,14 +978,23 @@
             return div.innerHTML;
         }
 
+        async function readUtf8Json(response) {
+            const buffer = await response.arrayBuffer();
+            const decoder = new TextDecoder("utf-8", { fatal: false });
+            const text = decoder.decode(buffer).replace(/^\uFEFF/, "");
+            return JSON.parse(text);
+        }
+
         // ============ 状态检查 ============
         async function checkStatus() {
             try {
-                const response = await fetch("/api/status");
+                const response = await fetch("/api/status", {
+                    headers: { "Accept": "application/json; charset=UTF-8" },
+                });
                 if (!response.ok) {
                     throw new Error("HTTP " + response.status);
                 }
-                const data = await response.json();
+                const data = await readUtf8Json(response);
                 updateStatusIndicator(data);
             } catch (err) {
                 console.error("状态检查失败:", err);
@@ -971,14 +1016,11 @@
         // ============ 功能卡片切换 ============
         function selectFunction(fn) {
             currentFunction = fn;
+            saveUIState();
 
             // 更新卡片激活状态
             document.querySelectorAll(".function-card").forEach(card => {
-                if (card.dataset.function === fn) {
-                    card.classList.add("active");
-                } else {
-                    card.classList.remove("active");
-                }
+                card.classList.toggle("active", card.dataset.function === fn);
             });
 
             // 更新提示并渲染表单
@@ -996,7 +1038,7 @@
 
             let html = "";
             fields.forEach(field => {
-                const value = DEFAULT_PARAMS[field.key] || "";
+                const value = paramState[field.key] ?? "";
                 if (field.type === "select") {
                     const options = field.options
                         .map(opt => `<option value="${opt}" ${opt === value ? "selected" : ""}>${opt}</option>`)
@@ -1022,9 +1064,13 @@
         // ============ 收集表单参数 ============
         function collectParams() {
             const params = { function: currentFunction };
-            document.querySelectorAll("[data-param]").forEach(el => {
-                params[el.dataset.param] = el.value;
+            formContainer.querySelectorAll("[data-param]").forEach(element => {
+                const key = element.dataset.param;
+                const value = element.value;
+                params[key] = value;
+                paramState[key] = value;
             });
+            saveUIState();
             return params;
         }
 
@@ -1056,7 +1102,10 @@
             try {
                 const response = await fetch("/api/run", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Accept": "application/json; charset=UTF-8",
+                        "Content-Type": "application/json; charset=UTF-8",
+                    },
                     body: JSON.stringify(params),
                 });
 
@@ -1064,7 +1113,7 @@
                     throw new Error("HTTP " + response.status);
                 }
 
-                const data = await response.json();
+                const data = await readUtf8Json(response);
                 displayResult(data);
             } catch (err) {
                 console.error("运行失败:", err);
@@ -1134,6 +1183,17 @@
         }
 
         // ============ 事件绑定 ============
+        // 参数变化
+        function updateParamState(event) {
+            const element = event.target.closest("[data-param]");
+            if (!element) return;
+            paramState[element.dataset.param] = element.value;
+            saveUIState();
+        }
+
+        formContainer.addEventListener("input", updateParamState);
+        formContainer.addEventListener("change", updateParamState);
+
         // 功能卡片点击
         functionGrid.addEventListener("click", e => {
             const card = e.target.closest(".function-card");
@@ -1143,7 +1203,10 @@
         });
 
         // 运行按钮点击
-        runBtn.addEventListener("click", runQER);
+        runBtn.addEventListener("click", event => {
+            event.preventDefault();
+            runQER();
+        });
 
         // 控制台 Tab 切换
         document.querySelectorAll(".console-tab").forEach(tab => {
@@ -1152,8 +1215,8 @@
 
         // ============ 初始化 ============
         function init() {
-            // 渲染默认表单 (Function 3)
-            renderForm(currentFunction);
+            // 恢复上次选择的功能和参数
+            selectFunction(currentFunction);
             // 检查 QER.exe 状态
             checkStatus();
             // 定时刷新状态 (每 30 秒)
